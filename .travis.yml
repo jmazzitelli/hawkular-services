@@ -32,7 +32,9 @@ install:
 - git fetch origin --unshallow || true
 
 script:
-- ./mvnw -s .travis.maven.settings.xml verify -Pitest -Dfailsafe.useFile=false | grep -vF "[INFO] Downloading:" | grep
+# TODO just testing the docker hub push, don't run tests - put this back before merging
+#- ./mvnw -s .travis.maven.settings.xml verify -Pitest -Dfailsafe.useFile=false | grep -vF "[INFO] Downloading:" | grep
+- ./mvnw -s .travis.maven.settings.xml verify -Dfailsafe.useFile=false | grep -vF "[INFO] Downloading:" | grep
   -vF "[INFO] Downloaded:"; test ${PIPESTATUS[0]} -eq 0
 
 before_cache:
@@ -48,19 +50,20 @@ before_cache:
     rm -Rf "$HOME/.m2"
   fi
 
-# Run the ruby client tests.
 # Push the distro to docker hub.
+# Run the ruby client tests.
 after_success:
-  - bash .travis.hawkular-client.ruby.sh
   - export COMMIT_HASH=${TRAVIS_COMMIT}
   - export DOCKER_VERSION=$(if [ "$TRAVIS_TAG" != "" ]; then echo $TRAVIS_TAG; elif [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi)
   - export DOCKER_USER=$(if [ "$DOCKER_USER" == "" ]; then echo "unknown"; else echo $DOCKER_USER ; fi)
   - export DOCKER_PASS=$(if [ "$DOCKER_PASS" == "" ]; then echo "unknown"; else echo $DOCKER_PASS ; fi)
   - echo DOCKER_VERSION=$DOCKER_VERSION
-  - cd docker-dist && mvn docker:build
+  - cd docker-dist && mvn -Ddocker.repo.name=hawkular docker:build
   - docker --version
   - docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
   - docker push hawkular/hawkular-services
+# TODO just testing the docker hub push, don't run tests - put this back before merging
+#  - bash .travis.hawkular-client.ruby.sh
 
 # Build only the master branch (for "latest" release) and version tags (e.g. "1.2.3" or "1.1.2.RC2" or "2.1.5.Final")
 # Add branch names below if we want to build and then push docker images built off of those branches.
